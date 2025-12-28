@@ -147,6 +147,69 @@ async function generateSql(question: string) {
   return { sql: finalSql };
 }
 
+function formatCount(label: string, count: number) {
+  const total = Number.isFinite(count) ? count : 0;
+  return `Tem ${total} ${label}${total === 1 ? "" : "s"} cadastrados no sistema.`;
+}
+
+function formatCountWithList(
+  label: string,
+  items: string[],
+  count?: number | null
+) {
+  const total =
+    typeof count === "number" && Number.isFinite(count) ? count : items.length;
+  const base = `Tem ${total} ${label}${total === 1 ? "" : "s"} cadastrados no sistema`;
+  if (!items.length) {
+    return `${base}.`;
+  }
+  const list = items.map((item, index) => `${index + 1}. ${item}`).join(" ");
+  return `${base}, ${list}.`;
+}
+
+function buildFriendlyText(question: string, rows: Array<Record<string, unknown>>) {
+  const normalized = question.trim().toLowerCase();
+  const count = rows[0]?.count;
+  const countValue =
+    typeof count === "number"
+      ? count
+      : typeof count === "string"
+      ? Number.parseInt(count, 10)
+      : null;
+
+  if (normalized.includes("usuario")) {
+    const emails = rows
+      .map((row) => row.email)
+      .filter((email) => typeof email === "string" && email.trim().length > 0)
+      .map((email) => email.trim());
+    if (emails.length) {
+      return formatCountWithList("usuário", emails, countValue);
+    }
+    if (countValue !== null) {
+      return formatCount("usuário", countValue);
+    }
+    return formatCount("usuário", rows.length);
+  }
+
+  if (normalized.includes("exercicio")) {
+    if (countValue !== null) {
+      return formatCount("exercício", countValue);
+    }
+    return formatCount("exercício", rows.length);
+  }
+
+  if (normalized.includes("treino") || normalized.includes("workout")) {
+    if (countValue !== null) {
+      return formatCount("treino", countValue);
+    }
+    return formatCount("treino", rows.length);
+  }
+
+  return rows.length
+    ? "Consulta realizada com sucesso."
+    : "Nenhum resultado encontrado.";
+}
+
 export function createAskDbRouter() {
   const router = express.Router();
 
@@ -167,7 +230,8 @@ export function createAskDbRouter() {
       }
 
       const data = await db.query(result.sql);
-      return res.json({ sql: result.sql, data: data.rows });
+      const friendly = buildFriendlyText(question, data.rows);
+      return res.json({ sql: result.sql, data: [friendly], raw: data.rows });
     } catch (error) {
       console.error(error);
       return res
