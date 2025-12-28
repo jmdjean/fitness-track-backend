@@ -6,41 +6,57 @@ function isFiniteNumber(value) {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+function resolveExerciseId(item) {
+  if (isNonEmptyString(item.id)) {
+    return item.id;
+  }
+
+  if (isNonEmptyString(item.exercise)) {
+    return item.exercise;
+  }
+
+  return "";
+}
+
 function validateExercises(exercises) {
   if (!Array.isArray(exercises)) {
-    return "Exercícios devem ser uma lista";
+    return "Exercヴcios devem ser uma lista";
   }
 
   for (const item of exercises) {
-    if (!isNonEmptyString(item.id)) {
-      return "ID do exercício é obrigatório";
-    }
-
-    if (!isNonEmptyString(item.exercise)) {
-      return "Nome do exercício é obrigatório";
+    if (!isNonEmptyString(resolveExerciseId(item))) {
+      return "ID do exercヴcio ゼ obrigatИrio";
     }
 
     if (!isFiniteNumber(item.sets)) {
-      return "Séries devem ser um número";
+      return "Sゼries devem ser um nカmero";
     }
 
     if (!isFiniteNumber(item.reps)) {
-      return "Repetições devem ser um número";
+      return "RepetiВリes devem ser um nカmero";
     }
   }
 
   return null;
 }
 
+function mapExercises(exercises) {
+  return exercises.map((item) => ({
+    id: resolveExerciseId(item),
+    sets: item.sets,
+    reps: item.reps,
+  }));
+}
+
 function buildCreatePayload(input) {
   const { name, exercises, totalCalories, userId } = input;
 
   if (!isNonEmptyString(name)) {
-    return { error: "Nome é obrigatório" };
+    return { error: "Nome ゼ obrigatИrio" };
   }
 
   if (!isNonEmptyString(userId)) {
-    return { error: "ID do usuário é obrigatório" };
+    return { error: "ID do usuケrio ゼ obrigatИrio" };
   }
 
   const exercisesError = validateExercises(exercises);
@@ -49,14 +65,14 @@ function buildCreatePayload(input) {
   }
 
   if (!isFiniteNumber(totalCalories)) {
-    return { error: "Total de calorias deve ser um número" };
+    return { error: "Total de calorias deve ser um nカmero" };
   }
 
   return {
     data: {
       userId: userId.trim(),
       name: name.trim(),
-      exercises,
+      exercises: mapExercises(exercises),
       totalCalories,
     },
   };
@@ -68,7 +84,7 @@ function buildUpdatePayload(input) {
 
   if (name !== undefined) {
     if (!isNonEmptyString(name)) {
-      return { error: "Nome é obrigatório" };
+      return { error: "Nome ゼ obrigatИrio" };
     }
     data.name = name.trim();
   }
@@ -78,19 +94,19 @@ function buildUpdatePayload(input) {
     if (exercisesError) {
       return { error: exercisesError };
     }
-    data.exercises = exercises;
+    data.exercises = mapExercises(exercises);
   }
 
   if (totalCalories !== undefined) {
     if (!isFiniteNumber(totalCalories)) {
-      return { error: "Total de calorias deve ser um número" };
+      return { error: "Total de calorias deve ser um nカmero" };
     }
     data.totalCalories = totalCalories;
   }
 
   if (userId !== undefined) {
     if (!isNonEmptyString(userId)) {
-      return { error: "ID do usuário é obrigatório" };
+      return { error: "ID do usuケrio ゼ obrigatИrio" };
     }
     data.userId = userId.trim();
   }

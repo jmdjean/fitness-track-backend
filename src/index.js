@@ -10,6 +10,7 @@ const authRoutes = require("./routes/authRoutes");
 const createWorkoutRoutes = require("./routes/workoutRoutes");
 const createExerciseRoutes = require("./routes/exerciseRoutes");
 const askDbRoutes = require("./routes/askDbRoutes");
+const workoutQuestionRoutes = require("./routes/workoutQuestionRoutes");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -48,6 +49,7 @@ app.use("/auth", authRoutes);
 app.use("/workouts", createWorkoutRoutes(selectedWorkoutRepository));
 app.use("/exercises", createExerciseRoutes(selectedExerciseRepository));
 app.use("/question", askDbRoutes);
+app.use("/workout/question", workoutQuestionRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);
