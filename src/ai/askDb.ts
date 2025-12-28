@@ -22,16 +22,23 @@ Regras:
 - Apenas SELECT.
 - Não use INSERT/UPDATE/DELETE/DDL.
 - Retorne SOMENTE JSON no formato: {"sql":"..."}.
-- Montar uma resposta legivel e amigavel para o usuário.
-- Se a perguntar for, por exemplo, "Quantos usuarios existem?", retorne: Existem X usuarios cadastrados.
-- Se a perguntar for, por exemplo, "Quantos treinos tem esse usuário?", retorne: Existem X treinos cadastrados para esse usuário e o nome dos treinos.
-- Se a perguntar for, por exemplo, "Quais exercícios esse usuário faz?" deve verificar todos os treinos do usuário e buscar todos os exercícios vinculados, retorne: São os seguintes exercícios: X, Y, Z.
+- Montar uma resposta legível e amigável para o usuário com os dados de retorno da query feita.
+- Se a pergunta for, por exemplo, "Quantos usuários existem?", retorne: Existem X usuários cadastrados.
+- Se a pergunta for, por exemplo, "Quantos treinos tem esse usuário?", retorne: Existem X treinos cadastrados para esse usuário e o nome dos treinos.
+- Se a pergunta for, por exemplo, "Quais exercícios esse usuário faz?" deve verificar todos os treinos do usuário e buscar todos os exercícios vinculados, retorne: São os seguintes exercícios: X, Y, Z.
 - Se a pergunta for ambígua, use um SELECT simples.
 - Sempre que fizer sentido, adicione LIMIT 100.
 
 Schema:
 ${schema}
 `.trim();
+
+function normalizeQuestion(text: string) {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
 
 function normalizeSql(sql: string) {
   const trimmed = sql.trim();
@@ -168,7 +175,7 @@ function formatCountWithList(
 }
 
 function buildFriendlyText(question: string, rows: Array<Record<string, any>>) {
-  const normalized = question.trim().toLowerCase();
+  const normalized = normalizeQuestion(question.trim());
   const count = rows[0]?.count;
   const countValue =
     typeof count === "number"
@@ -205,47 +212,75 @@ function buildFriendlyText(question: string, rows: Array<Record<string, any>>) {
     return formatCount("treino", rows.length);
   }
 
-  return rows.length
-    ? "Consulta realizada com sucesso."
-    : "Nenhum resultado encontrado.";
+  if (!rows.length) {
+    return "Nenhum resultado encontrado.";
+  }
+
+  const details = JSON.stringify(rows);
+  return `Consulta concluída. ${rows.length} registro${
+    rows.length === 1 ? "" : "s"
+  } encontrado${rows.length === 1 ? "" : "s"}. Dados: ${details}`;
+}
+
+function getQuestion(req: express.Request) {
+  return String(req.body?.question || "").trim();
+}
+
+function buildErrorResponse(result: { error: string; status?: number }) {
+  const status =
+    "status" in result && Number.isFinite(result.status) ? result.status : 400;
+  return { status, body: { error: result.error } };
+}
+
+function isErrorResult(
+  result: { sql: string } | { error: string; status?: number }
+): result is { error: string; status?: number } {
+  return "error" in result;
+}
+
+function hasUserEmails(rows: Array<Record<string, any>>) {
+  return rows.some(
+    (row) => typeof row.email === "string" && row.email.trim().length > 0
+  );
+}
+
+async function ensureUserEmails(
+  question: string,
+  rows: Array<Record<string, any>>
+) {
+  if (!normalizeQuestion(question).includes("usuario")) {
+    return rows;
+  }
+
+  if (hasUserEmails(rows)) {
+    return rows;
+  }
+
+  const users = await db.query(
+    `SELECT email FROM users ORDER BY created_at LIMIT 100`
+  );
+  return users.rows;
 }
 
 export function createAskDbRouter() {
   const router = express.Router();
 
   router.post("/", async (req, res) => {
-    const question = String(req.body?.question || "").trim();
+    const question = getQuestion(req);
     if (!question) {
       return res.status(400).json({ error: "Pergunta é obrigatória" });
     }
 
     try {
       const result = await generateSql(question);
-      if ("error" in result) {
-        const status =
-          "status" in result && Number.isFinite(result.status)
-            ? result.status
-            : 400;
-        return res.status(status).json({ error: result.error });
+      if (isErrorResult(result)) {
+        const { status, body } = buildErrorResponse(result);
+        return res.status(status).json(body);
       }
 
       const data = await db.query(result.sql);
-      let rows = data.rows;
-      let friendly = buildFriendlyText(question, rows);
-
-      if (question.toLowerCase().includes("usuario")) {
-        const hasEmails = rows.some(
-          (row) =>
-            typeof row.email === "string" && row.email.trim().length > 0
-        );
-        if (!hasEmails) {
-          const users = await db.query(
-            `SELECT email FROM users ORDER BY created_at LIMIT 100`
-          );
-          rows = users.rows;
-          friendly = buildFriendlyText(question, rows);
-        }
-      }
+      const rows = await ensureUserEmails(question, data.rows);
+      const friendly = buildFriendlyText(question, rows);
 
       return res.json({ sql: result.sql, data: [friendly], raw: rows });
     } catch (error) {
