@@ -64,7 +64,9 @@ function buildCreatePayload(input) {
     return { error: exercisesError };
   }
 
-  if (!isFiniteNumber(totalCalories)) {
+  const calories =
+    totalCalories === undefined || totalCalories === null ? 0 : totalCalories;
+  if (!isFiniteNumber(calories)) {
     return { error: "Total de calorias deve ser um nカmero" };
   }
 
@@ -73,7 +75,7 @@ function buildCreatePayload(input) {
       userId: userId.trim(),
       name: name.trim(),
       exercises: mapExercises(exercises),
-      totalCalories,
+      totalCalories: calories,
     },
   };
 }
@@ -98,10 +100,11 @@ function buildUpdatePayload(input) {
   }
 
   if (totalCalories !== undefined) {
-    if (!isFiniteNumber(totalCalories)) {
+    const calories = totalCalories === null ? 0 : totalCalories;
+    if (!isFiniteNumber(calories)) {
       return { error: "Total de calorias deve ser um nカmero" };
     }
-    data.totalCalories = totalCalories;
+    data.totalCalories = calories;
   }
 
   if (userId !== undefined) {
