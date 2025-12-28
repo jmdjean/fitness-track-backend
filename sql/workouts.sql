@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS workouts (
   id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  exercises JSONB NOT NULL,
-  total_calories NUMERIC NOT NULL
+  total_calories NUMERIC NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );

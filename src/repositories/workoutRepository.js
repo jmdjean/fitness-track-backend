@@ -18,6 +18,7 @@ async function getById(id) {
 async function create(data) {
   const workout = {
     id: randomUUID(),
+    userId: data.userId,
     name: data.name,
     exercises: data.exercises,
     totalCalories: data.totalCalories,
@@ -43,6 +44,10 @@ async function update(id, data) {
 
   if (data.totalCalories !== undefined) {
     workout.totalCalories = data.totalCalories;
+  }
+
+  if (data.userId !== undefined) {
+    workout.userId = data.userId;
   }
 
   return workout;

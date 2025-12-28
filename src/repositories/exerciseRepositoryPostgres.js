@@ -2,9 +2,9 @@ const db = require("../db");
 
 async function list() {
   const result = await db.query(
-    `SELECT code, category
+    `SELECT id, name
      FROM exercises
-     ORDER BY category, code`
+     ORDER BY name`
   );
   return result.rows;
 }

@@ -33,10 +33,14 @@ function validateExercises(exercises) {
 }
 
 function buildCreatePayload(input) {
-  const { name, exercises, totalCalories } = input;
+  const { name, exercises, totalCalories, userId } = input;
 
   if (!isNonEmptyString(name)) {
     return { error: "Name is required" };
+  }
+
+  if (!isNonEmptyString(userId)) {
+    return { error: "UserId is required" };
   }
 
   const exercisesError = validateExercises(exercises);
@@ -50,6 +54,7 @@ function buildCreatePayload(input) {
 
   return {
     data: {
+      userId: userId.trim(),
       name: name.trim(),
       exercises,
       totalCalories,
@@ -58,7 +63,7 @@ function buildCreatePayload(input) {
 }
 
 function buildUpdatePayload(input) {
-  const { name, exercises, totalCalories } = input;
+  const { name, exercises, totalCalories, userId } = input;
   const data = {};
 
   if (name !== undefined) {
@@ -81,6 +86,13 @@ function buildUpdatePayload(input) {
       return { error: "TotalCalories must be a number" };
     }
     data.totalCalories = totalCalories;
+  }
+
+  if (userId !== undefined) {
+    if (!isNonEmptyString(userId)) {
+      return { error: "UserId is required" };
+    }
+    data.userId = userId.trim();
   }
 
   return { data };
