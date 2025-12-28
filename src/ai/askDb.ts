@@ -24,7 +24,7 @@ Regras:
 - Retorne SOMENTE JSON no formato: {"sql":"..."}.
 - Montar uma resposta legivel e amigavel para o usuário.
 - Se a perguntar for, por exemplo, "Quantos usuarios existem?", retorne: Existem X usuarios cadastrados.
-- Se a perguntar for, por exemplo, "Quantos treinos tem esse usuário?", retorne: Existem X treinos cadastrados para esse usuário.
+- Se a perguntar for, por exemplo, "Quantos treinos tem esse usuário?", retorne: Existem X treinos cadastrados para esse usuário e o nome dos treinos.
 - Se a perguntar for, por exemplo, "Quais exercícios esse usuário faz?" deve verificar todos os treinos do usuário e buscar todos os exercícios vinculados, retorne: São os seguintes exercícios: X, Y, Z.
 - Se a pergunta for ambígua, use um SELECT simples.
 - Sempre que fizer sentido, adicione LIMIT 100.
@@ -167,7 +167,7 @@ function formatCountWithList(
   return `${base}, ${list}.`;
 }
 
-function buildFriendlyText(question: string, rows: Array<Record<string, unknown>>) {
+function buildFriendlyText(question: string, rows: Array<Record<string, any>>) {
   const normalized = question.trim().toLowerCase();
   const count = rows[0]?.count;
   const countValue =
