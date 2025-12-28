@@ -1,10 +1,26 @@
 const express = require("express");
 
 const workoutService = require("../services/workoutService");
+const userRepositoryPostgres = require("../repositories/userRepositoryPostgres");
 const asyncHandler = require("./asyncHandler");
 
 function createWorkoutRoutes(repository) {
   const router = express.Router();
+  const allowEmailLookup = process.env.USE_POSTGRES === "true";
+
+  async function resolveUserId(rawUserId) {
+    if (!rawUserId) {
+      return "";
+    }
+
+    const userId = String(rawUserId).trim();
+    if (!allowEmailLookup || !userId.includes("@")) {
+      return userId;
+    }
+
+    const user = await userRepositoryPostgres.getByEmail(userId);
+    return user ? user.id : "";
+  }
 
   function parseId(param) {
     return param;
@@ -47,6 +63,12 @@ function createWorkoutRoutes(repository) {
       if (req.userId && !data.userId) {
         data.userId = req.userId;
       }
+      data.userId = await resolveUserId(data.userId);
+      if (!data.userId) {
+        return res
+          .status(400)
+          .json({ error: "ID do usuǭrio nǜo encontrado" });
+      }
 
       const payload = workoutService.buildCreatePayload(data);
       if (payload.error) {
@@ -79,6 +101,14 @@ function createWorkoutRoutes(repository) {
       }
       if (req.userId && !data.userId) {
         data.userId = req.userId;
+      }
+      if (data.userId !== undefined) {
+        data.userId = await resolveUserId(data.userId);
+        if (!data.userId) {
+          return res
+            .status(400)
+            .json({ error: "ID do usuǭrio nǜo encontrado" });
+        }
       }
 
       const payload = workoutService.buildUpdatePayload(data);
