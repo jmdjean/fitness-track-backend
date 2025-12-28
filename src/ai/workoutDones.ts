@@ -2,6 +2,10 @@ import express from "express";
 
 import * as db from "../db";
 
+function isNonEmptyString(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
 function normalizeQuestion(text: string) {
   return text
     .normalize("NFD")
