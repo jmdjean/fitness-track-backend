@@ -33,11 +33,11 @@ function validateBodyMetrics(bodyMetrics) {
   const { weightKg, heightCm } = bodyMetrics;
 
   if (weightKg !== null && weightKg !== undefined && !isFiniteNumber(weightKg)) {
-    return { error: "WeightKg must be a number" };
+    return { error: "Peso (kg) deve ser um número" };
   }
 
   if (heightCm !== null && heightCm !== undefined && !isFiniteNumber(heightCm)) {
-    return { error: "HeightCm must be a number" };
+    return { error: "Altura (cm) deve ser um número" };
   }
 
   return {
@@ -52,20 +52,20 @@ async function buildRegisterPayload(input) {
   const { email, password, confirmPassword, birthdate, bodyMetrics } = input;
 
   if (!isNonEmptyString(email)) {
-    return { error: "Email is required" };
+    return { error: "Email é obrigatório" };
   }
 
   if (!isNonEmptyString(password)) {
-    return { error: "Password is required" };
+    return { error: "Senha é obrigatória" };
   }
 
   if (password !== confirmPassword) {
-    return { error: "Passwords do not match" };
+    return { error: "Senhas não conferem" };
   }
 
   const birthdateValue = normalizeBirthdate(birthdate);
   if (birthdate !== null && birthdate !== undefined && !birthdateValue) {
-    return { error: "Birthdate is invalid" };
+    return { error: "Data de nascimento inválida" };
   }
 
   const metrics = validateBodyMetrics(bodyMetrics);
@@ -90,11 +90,11 @@ function buildLoginPayload(input) {
   const { email, password } = input;
 
   if (!isNonEmptyString(email)) {
-    return { error: "Email is required" };
+    return { error: "Email é obrigatório" };
   }
 
   if (!isNonEmptyString(password)) {
-    return { error: "Password is required" };
+    return { error: "Senha é obrigatória" };
   }
 
   return {

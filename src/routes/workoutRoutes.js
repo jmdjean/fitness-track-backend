@@ -13,7 +13,7 @@ function createWorkoutRoutes(repository) {
   router.get(
     "/",
     asyncHandler(async (req, res) => {
-      const workouts = await repository.list();
+      const workouts = await repository.list(req.userId);
       res.json(workouts);
     })
   );
@@ -23,12 +23,12 @@ function createWorkoutRoutes(repository) {
     asyncHandler(async (req, res) => {
       const id = parseId(req.params.id);
       if (!id) {
-        return res.status(400).json({ error: "Invalid id" });
+        return res.status(400).json({ error: "ID inválido" });
       }
 
-      const workout = await repository.getById(id);
+      const workout = await repository.getById(id, req.userId);
       if (!workout) {
-        return res.status(404).json({ error: "Workout not found" });
+        return res.status(404).json({ error: "Treino não encontrado" });
       }
 
       return res.json(workout);
@@ -38,7 +38,17 @@ function createWorkoutRoutes(repository) {
   router.post(
     "/",
     asyncHandler(async (req, res) => {
-      const payload = workoutService.buildCreatePayload(req.body);
+      const data = { ...req.body };
+      if (req.userId && data.userId && data.userId !== req.userId) {
+        return res
+          .status(400)
+          .json({ error: "ID do usuário não confere com a sessão" });
+      }
+      if (req.userId && !data.userId) {
+        data.userId = req.userId;
+      }
+
+      const payload = workoutService.buildCreatePayload(data);
       if (payload.error) {
         return res.status(400).json({ error: payload.error });
       }
@@ -53,15 +63,25 @@ function createWorkoutRoutes(repository) {
     asyncHandler(async (req, res) => {
       const id = parseId(req.params.id);
       if (!id) {
-        return res.status(400).json({ error: "Invalid id" });
+        return res.status(400).json({ error: "ID inválido" });
       }
 
-      const existing = await repository.getById(id);
+      const existing = await repository.getById(id, req.userId);
       if (!existing) {
-        return res.status(404).json({ error: "Workout not found" });
+        return res.status(404).json({ error: "Treino não encontrado" });
       }
 
-      const payload = workoutService.buildUpdatePayload(req.body);
+      const data = { ...req.body };
+      if (req.userId && data.userId && data.userId !== req.userId) {
+        return res
+          .status(400)
+          .json({ error: "ID do usuário não confere com a sessão" });
+      }
+      if (req.userId && !data.userId) {
+        data.userId = req.userId;
+      }
+
+      const payload = workoutService.buildUpdatePayload(data);
       if (payload.error) {
         return res.status(400).json({ error: payload.error });
       }
@@ -76,12 +96,17 @@ function createWorkoutRoutes(repository) {
     asyncHandler(async (req, res) => {
       const id = parseId(req.params.id);
       if (!id) {
-        return res.status(400).json({ error: "Invalid id" });
+        return res.status(400).json({ error: "ID inválido" });
+      }
+
+      const existing = await repository.getById(id, req.userId);
+      if (!existing) {
+        return res.status(404).json({ error: "Treino não encontrado" });
       }
 
       const removed = await repository.remove(id);
       if (!removed) {
-        return res.status(404).json({ error: "Workout not found" });
+        return res.status(404).json({ error: "Treino não encontrado" });
       }
 
       return res.json(removed);

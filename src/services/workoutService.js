@@ -8,24 +8,24 @@ function isFiniteNumber(value) {
 
 function validateExercises(exercises) {
   if (!Array.isArray(exercises)) {
-    return "Exercises must be an array";
+    return "Exercícios devem ser uma lista";
   }
 
   for (const item of exercises) {
     if (!isNonEmptyString(item.id)) {
-      return "Exercise id is required";
+      return "ID do exercício é obrigatório";
     }
 
     if (!isNonEmptyString(item.exercise)) {
-      return "Exercise name is required";
+      return "Nome do exercício é obrigatório";
     }
 
     if (!isFiniteNumber(item.sets)) {
-      return "Sets must be a number";
+      return "Séries devem ser um número";
     }
 
     if (!isFiniteNumber(item.reps)) {
-      return "Reps must be a number";
+      return "Repetições devem ser um número";
     }
   }
 
@@ -36,11 +36,11 @@ function buildCreatePayload(input) {
   const { name, exercises, totalCalories, userId } = input;
 
   if (!isNonEmptyString(name)) {
-    return { error: "Name is required" };
+    return { error: "Nome é obrigatório" };
   }
 
   if (!isNonEmptyString(userId)) {
-    return { error: "UserId is required" };
+    return { error: "ID do usuário é obrigatório" };
   }
 
   const exercisesError = validateExercises(exercises);
@@ -49,7 +49,7 @@ function buildCreatePayload(input) {
   }
 
   if (!isFiniteNumber(totalCalories)) {
-    return { error: "TotalCalories must be a number" };
+    return { error: "Total de calorias deve ser um número" };
   }
 
   return {
@@ -68,7 +68,7 @@ function buildUpdatePayload(input) {
 
   if (name !== undefined) {
     if (!isNonEmptyString(name)) {
-      return { error: "Name is required" };
+      return { error: "Nome é obrigatório" };
     }
     data.name = name.trim();
   }
@@ -83,14 +83,14 @@ function buildUpdatePayload(input) {
 
   if (totalCalories !== undefined) {
     if (!isFiniteNumber(totalCalories)) {
-      return { error: "TotalCalories must be a number" };
+      return { error: "Total de calorias deve ser um número" };
     }
     data.totalCalories = totalCalories;
   }
 
   if (userId !== undefined) {
     if (!isNonEmptyString(userId)) {
-      return { error: "UserId is required" };
+      return { error: "ID do usuário é obrigatório" };
     }
     data.userId = userId.trim();
   }

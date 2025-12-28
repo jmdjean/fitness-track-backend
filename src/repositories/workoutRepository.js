@@ -7,12 +7,22 @@ const workouts = MOCK_WORKOUTS.map((workout) => ({
   exercises: workout.exercises.map((exercise) => ({ ...exercise })),
 }));
 
-async function list() {
-  return workouts;
+async function list(userId) {
+  if (!userId) {
+    return workouts;
+  }
+  return workouts.filter((item) => item.userId === userId);
 }
 
-async function getById(id) {
-  return workouts.find((item) => item.id === id) || null;
+async function getById(id, userId) {
+  const workout = workouts.find((item) => item.id === id) || null;
+  if (!workout) {
+    return null;
+  }
+  if (userId && workout.userId !== userId) {
+    return null;
+  }
+  return workout;
 }
 
 async function create(data) {

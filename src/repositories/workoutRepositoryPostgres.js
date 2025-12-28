@@ -13,7 +13,14 @@ function buildExercisesParams(exercises) {
   return { values, placeholders };
 }
 
-async function list() {
+async function list(userId) {
+  const params = [];
+  let whereClause = "";
+  if (userId) {
+    params.push(userId);
+    whereClause = "WHERE w.user_id = $1";
+  }
+
   const result = await db.query(
     `SELECT w.id,
             w.user_id AS "userId",
@@ -33,13 +40,22 @@ async function list() {
      FROM workouts w
      LEFT JOIN workout_exercises we ON we.workout_id = w.id
      LEFT JOIN exercises e ON e.id = we.exercise_id
+     ${whereClause}
      GROUP BY w.id
-     ORDER BY w.name`
+     ORDER BY w.name`,
+    params
   );
   return result.rows;
 }
 
-async function getById(id) {
+async function getById(id, userId) {
+  const params = [id];
+  let whereClause = "WHERE w.id = $1";
+  if (userId) {
+    params.push(userId);
+    whereClause += " AND w.user_id = $2";
+  }
+
   const result = await db.query(
     `SELECT w.id,
             w.user_id AS "userId",
@@ -59,9 +75,9 @@ async function getById(id) {
      FROM workouts w
      LEFT JOIN workout_exercises we ON we.workout_id = w.id
      LEFT JOIN exercises e ON e.id = we.exercise_id
-     WHERE w.id = $1
+     ${whereClause}
      GROUP BY w.id`,
-    [id]
+    params
   );
   return result.rows[0] || null;
 }

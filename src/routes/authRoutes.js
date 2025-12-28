@@ -17,7 +17,7 @@ router.post(
 
     const existing = await userRepositoryPostgres.getByEmail(payload.data.email);
     if (existing) {
-      return res.status(409).json({ error: "Email already registered" });
+      return res.status(409).json({ error: "Email já cadastrado" });
     }
 
     const user = await userRepositoryPostgres.create(payload.data);
@@ -35,7 +35,7 @@ router.post(
 
     const user = await userRepositoryPostgres.getByEmail(payload.data.email);
     if (!user) {
-      return res.status(401).json({ error: "Invalid credentials" });
+      return res.status(401).json({ error: "Credenciais inválidas" });
     }
 
     const validPassword = await bcrypt.compare(
@@ -44,7 +44,7 @@ router.post(
     );
 
     if (!validPassword) {
-      return res.status(401).json({ error: "Invalid credentials" });
+      return res.status(401).json({ error: "Credenciais inválidas" });
     }
 
     const { passwordHash, ...safeUser } = user;
