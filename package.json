@@ -1,0 +1,21 @@
+{
+  "name": "fitness-track-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Express CRUD for workout",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "cross-env PORT=3000 node --watch src/index.js"
+  },
+  "engines": {
+    "node": "20.19.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "cross-env": "^7.0.3",
+    "express": "^4.19.2",
+    "pg": "^8.13.1"
+  }
+}
