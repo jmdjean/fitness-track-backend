@@ -29,7 +29,17 @@ function createWorkoutRoutes(repository) {
   router.get(
     "/",
     asyncHandler(async (req, res) => {
-      const workouts = await repository.list(req.userId);
+      let userId = req.userId;
+      if (userId) {
+        userId = await resolveUserId(userId);
+        if (!userId) {
+          return res
+            .status(400)
+            .json({ error: "ID do usuÇ­rio nÇœo encontrado" });
+        }
+      }
+
+      const workouts = await repository.list(userId);
       res.json(workouts);
     })
   );
@@ -42,7 +52,17 @@ function createWorkoutRoutes(repository) {
         return res.status(400).json({ error: "ID inválido" });
       }
 
-      const workout = await repository.getById(id, req.userId);
+      let userId = req.userId;
+      if (userId) {
+        userId = await resolveUserId(userId);
+        if (!userId) {
+          return res
+            .status(400)
+            .json({ error: "ID do usuÇ­rio nÇœo encontrado" });
+        }
+      }
+
+      const workout = await repository.getById(id, userId);
       if (!workout) {
         return res.status(404).json({ error: "Treino não encontrado" });
       }
