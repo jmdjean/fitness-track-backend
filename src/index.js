@@ -29,15 +29,20 @@ const selectedExerciseRepository = useMocks
 app.use(express.json());
 
 const defaultOrigins = ["http://localhost:4200"];
-const envOrigins = (process.env.CORS_ORIGIN || "")
+const rawCorsOrigins = (process.env.CORS_ORIGIN || "").trim();
+const envOrigins = rawCorsOrigins
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
 const allowedOrigins = envOrigins.length ? envOrigins : defaultOrigins;
+const allowAllOrigins = rawCorsOrigins === "*";
 
 app.use(
   cors({
     origin: (origin, callback) => {
+      if (allowAllOrigins) {
+        return callback(null, true);
+      }
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
