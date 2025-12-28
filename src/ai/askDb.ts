@@ -5,7 +5,7 @@ import * as db from "../db";
 
 const schema = `
 Tabelas:
-- users(id, email, password_hash, birthdate, weight_kg, height_cm, created_at)
+- users(id, name, email, password_hash, birthdate, weight_kg, height_cm, created_at)
 - exercises(id, name)
 - workouts(id, user_id, name, total_calories, created_at)
 - workout_exercises(workout_id, exercise_id, sets, reps)

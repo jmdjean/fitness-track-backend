@@ -16,12 +16,16 @@ const QUESTIONS = {
 type QuestionKey = keyof typeof QUESTIONS;
 
 function resolveQuestionKey(rawType?: unknown, rawQuestion?: unknown) {
-  const type = String(rawType || "").trim().toLowerCase();
+  const type = String(rawType || "")
+    .trim()
+    .toLowerCase();
   if (type && type in QUESTIONS) {
     return type as QuestionKey;
   }
 
-  const question = String(rawQuestion || "").trim().toLowerCase();
+  const question = String(rawQuestion || "")
+    .trim()
+    .toLowerCase();
   if (!question) {
     return null;
   }
@@ -41,6 +45,7 @@ export function createWorkoutQuestionRouter() {
   const router = express.Router();
 
   router.post("/", async (req, res) => {
+    console.log("Received workout question request:", req.body);
     const questionKey = resolveQuestionKey(req.body?.type, req.body?.question);
     if (!questionKey) {
       return res.status(400).json({
@@ -51,12 +56,18 @@ export function createWorkoutQuestionRouter() {
 
     const config = QUESTIONS[questionKey];
     const userId = String(req.body?.userId || req.userId || "").trim();
+
+    console.log("Config question:", config);
+    console.log("User ID:", userId);
+
     if (config.requiresUser && !userId) {
       return res.status(400).json({ error: "userId e obrigatorio." });
     }
 
     try {
       const params = config.requiresUser ? [userId] : [];
+      console.log("SQL Params:", params);
+      console.log("query:", config.sql);
       const result = await db.query(config.sql, params);
       const count = result.rows[0]?.count ?? 0;
 

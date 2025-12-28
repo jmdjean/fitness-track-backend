@@ -49,7 +49,12 @@ function validateBodyMetrics(bodyMetrics) {
 }
 
 async function buildRegisterPayload(input) {
-  const { email, password, confirmPassword, birthdate, bodyMetrics } = input;
+  const { name, email, password, confirmPassword, birthdate, bodyMetrics } =
+    input;
+
+  if (!isNonEmptyString(name)) {
+    return { error: "Nome é obrigatório" };
+  }
 
   if (!isNonEmptyString(email)) {
     return { error: "Email é obrigatório" };
@@ -77,6 +82,7 @@ async function buildRegisterPayload(input) {
 
   return {
     data: {
+      name: name.trim(),
       email: normalizeEmail(email),
       passwordHash,
       birthdate: birthdateValue,
