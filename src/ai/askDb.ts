@@ -74,6 +74,25 @@ function isSafeSelect(sql: string) {
   return !forbidden.some((keyword) => lowered.includes(keyword));
 }
 
+function isQuotaError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const message =
+    "message" in error && typeof error.message === "string"
+      ? error.message.toLowerCase()
+      : "";
+  const status = "status" in error ? Number(error.status) : 0;
+  const code = "code" in error ? String(error.code) : "";
+
+  return (
+    status === 429 ||
+    code === "insufficient_quota" ||
+    message.includes("exceeded your current quota")
+  );
+}
+
 async function generateSql(question: string) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -81,14 +100,27 @@ async function generateSql(question: string) {
   }
 
   const client = new OpenAI({ apiKey });
-  const completion = await client.chat.completions.create({
-    model: "gpt-4.1-mini",
-    temperature: 0,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: question },
-    ],
-  });
+  let completion;
+  try {
+    completion = await client.chat.completions.create({
+      model: "gpt-4.1-mini",
+      temperature: 0,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: question },
+      ],
+    });
+  } catch (error) {
+    if (isQuotaError(error)) {
+      return {
+        error:
+          "Cota da OpenAI esgotada. Verifique o plano/billing e tente novamente.",
+        status: 429,
+      };
+    }
+
+    return { error: "Falha ao consultar a OpenAI." };
+  }
 
   const content = completion.choices?.[0]?.message?.content || "";
   let parsed: { sql?: string };
@@ -124,7 +156,11 @@ export function createAskDbRouter() {
     try {
       const result = await generateSql(question);
       if ("error" in result) {
-        return res.status(400).json({ error: result.error });
+        const status =
+          "status" in result && Number.isFinite(result.status)
+            ? result.status
+            : 400;
+        return res.status(status).json({ error: result.error });
       }
 
       const data = await db.query(result.sql);
