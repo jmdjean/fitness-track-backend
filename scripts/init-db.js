@@ -8,6 +8,8 @@ const sqlFiles = [
   "exercises.sql",
   "workouts.sql",
   "workout_exercises.sql",
+  "workout_dones.sql",
+  "workout_done_exercises.sql",
 ];
 
 async function run() {
