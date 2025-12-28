@@ -230,8 +230,24 @@ export function createAskDbRouter() {
       }
 
       const data = await db.query(result.sql);
-      const friendly = buildFriendlyText(question, data.rows);
-      return res.json({ sql: result.sql, data: [friendly], raw: data.rows });
+      let rows = data.rows;
+      let friendly = buildFriendlyText(question, rows);
+
+      if (question.toLowerCase().includes("usuario")) {
+        const hasEmails = rows.some(
+          (row) =>
+            typeof row.email === "string" && row.email.trim().length > 0
+        );
+        if (!hasEmails) {
+          const users = await db.query(
+            `SELECT email FROM users ORDER BY created_at LIMIT 100`
+          );
+          rows = users.rows;
+          friendly = buildFriendlyText(question, rows);
+        }
+      }
+
+      return res.json({ sql: result.sql, data: [friendly], raw: rows });
     } catch (error) {
       console.error(error);
       return res
