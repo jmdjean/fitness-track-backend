@@ -29,16 +29,19 @@ function createWorkoutDoneRoutes() {
     "/",
     asyncHandler(async (req, res) => {
       const data = { ...req.body };
-      if (req.userId && data.userId && data.userId !== req.userId) {
+      const headerUserId = req.userId;
+      if (!headerUserId) {
         return res
           .status(400)
-          .json({ error: "ID do usuário não confere com a sessão" });
+          .json({ error: "userId e obrigatorio no header." });
       }
-      if (req.userId && !data.userId) {
-        data.userId = req.userId;
+      if (data.userId && data.userId !== headerUserId) {
+        return res
+          .status(400)
+          .json({ error: "userId do corpo nao confere com o header." });
       }
 
-      data.userId = await resolveUserId(data.userId);
+      data.userId = await resolveUserId(headerUserId);
       if (!data.userId) {
         return res
           .status(400)

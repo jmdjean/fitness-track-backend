@@ -165,7 +165,7 @@ export function createWorkoutQuestionRouter() {
     }
 
     const config = QUESTIONS[questionKey];
-    const rawUserId = String(req.body?.userId || req.userId || "").trim();
+    const rawUserId = String(req.userId || "").trim();
     let userId = rawUserId;
 
     console.log("Config question:", config);

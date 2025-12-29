@@ -227,7 +227,7 @@ export function createWorkoutDonesRouter() {
   const router = express.Router();
 
   router.post("/", async (req, res) => {
-    const rawUserId = String(req.body?.userId || req.userId || "").trim();
+    const rawUserId = String(req.userId || "").trim();
     if (!rawUserId) {
       return res.status(400).json({ error: "ID do usuário é obrigatório" });
     }

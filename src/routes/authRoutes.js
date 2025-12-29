@@ -48,7 +48,7 @@ router.post(
     }
 
     const { passwordHash, ...safeUser } = user;
-    return res.json(safeUser);
+    return res.json({ ...safeUser, userId: user.id });
   })
 );
 
