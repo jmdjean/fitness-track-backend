@@ -78,6 +78,46 @@ async function create(data) {
   }
 }
 
+async function listByUser(userId) {
+  const result = await db.query(
+    `SELECT wd.id,
+            wd.done_at AS "createdAt",
+            w.id AS "workoutId",
+            w.name AS "workoutName",
+            COALESCE(
+              json_agg(
+                json_build_object(
+                  'id', e.id,
+                  'name', e.name,
+                  'sets', wde.sets,
+                  'reps', wde.reps,
+                  'weightKg', wde.weight_kg
+                ) ORDER BY e.name
+              ) FILTER (WHERE e.id IS NOT NULL),
+              '[]'
+            ) AS exercises
+     FROM workout_dones wd
+     JOIN workouts w ON w.id = wd.workout_id
+     LEFT JOIN workout_done_exercises wde ON wde.workout_done_id = wd.id
+     LEFT JOIN exercises e ON e.id = wde.exercise_id
+     WHERE wd.user_id = $1
+     GROUP BY wd.id, w.id, w.name
+     ORDER BY wd.done_at DESC`,
+    [userId]
+  );
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    workout: {
+      id: row.workoutId,
+      name: row.workoutName,
+    },
+    exercises: Array.isArray(row.exercises) ? row.exercises : [],
+    createdAt: row.createdAt,
+  }));
+}
+
 module.exports = {
   create,
+  listByUser,
 };

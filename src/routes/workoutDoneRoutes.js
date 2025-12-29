@@ -25,6 +25,28 @@ async function resolveUserId(rawUserId) {
 function createWorkoutDoneRoutes() {
   const router = express.Router();
 
+  router.get(
+    "/",
+    asyncHandler(async (req, res) => {
+      const headerUserId = req.userId;
+      if (!headerUserId) {
+        return res
+          .status(400)
+          .json({ error: "userId e obrigatorio no header." });
+      }
+
+      const userId = await resolveUserId(headerUserId);
+      if (!userId) {
+        return res
+          .status(400)
+          .json({ error: "ID do usuario nao encontrado" });
+      }
+
+      const items = await workoutDoneRepositoryPostgres.listByUser(userId);
+      return res.json(items);
+    })
+  );
+
   router.post(
     "/",
     asyncHandler(async (req, res) => {
