@@ -28,6 +28,7 @@ Regras:
 - Se a pergunta for, por exemplo, "Quais exercícios esse usuário faz?" deve verificar todos os treinos do usuário e buscar todos os exercícios vinculados, retorne: São os seguintes exercícios: X, Y, Z.
 - Se a pergunta for ambígua, use um SELECT simples.
 - Sempre que fizer sentido, adicione LIMIT 100.
+- Se a pergunta mencionar "esse usuario" e houver contexto com o id do usuario logado, use users.id ou workouts.user_id com esse id.
 
 Schema:
 ${schema}
@@ -38,6 +39,29 @@ function normalizeQuestion(text: string) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
+}
+
+function needsUserContext(question: string) {
+  const normalized = normalizeQuestion(question);
+  return (
+    normalized.includes("esse usuario") ||
+    normalized.includes("este usuario") ||
+    normalized.includes("deste usuario") ||
+    normalized.includes("desse usuario") ||
+    normalized.includes("meus treinos") ||
+    normalized.includes("meu treino") ||
+    normalized.includes("meus exercicios") ||
+    normalized.includes("meu exercicio")
+  );
+}
+
+function addUserContext(question: string, userId: string) {
+  if (!userId) {
+    return question;
+  }
+
+  return `${question}
+Contexto: o id do usuario logado e ${userId}. Quando a pergunta falar de \"esse usuario\", use esse id.`;
 }
 
 function normalizeSql(sql: string) {
@@ -224,11 +248,18 @@ export function createAskDbRouter() {
   router.post("/", async (req, res) => {
     const question = getQuestion(req);
     if (!question) {
-      return res.status(400).json({ error: "Pergunta é obrigatória" });
+      return res.status(400).json({ error: "Pergunta e obrigatoria" });
     }
 
+    const userId = String(req.userId || "").trim();
+    if (needsUserContext(question) && !userId) {
+      return res.status(400).json({ error: "userId e obrigatorio no header." });
+    }
+
+    const questionWithContext = addUserContext(question, userId);
+
     try {
-      const result = await generateSql(question);
+      const result = await generateSql(questionWithContext);
       if (isErrorResult(result)) {
         const { status, body } = buildErrorResponse(result);
         return res.status(status).json(body);
