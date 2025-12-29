@@ -175,51 +175,7 @@ function formatCountWithList(
 }
 
 function buildFriendlyText(question: string, rows: Array<Record<string, any>>) {
-  const normalized = normalizeQuestion(question.trim());
-  const count = rows[0]?.count;
-  const countValue =
-    typeof count === "number"
-      ? count
-      : typeof count === "string"
-      ? Number.parseInt(count, 10)
-      : null;
-
-  if (normalized.includes("usuario")) {
-    const emails = rows
-      .map((row) => row.email)
-      .filter((email) => typeof email === "string" && email.trim().length > 0)
-      .map((email) => email.trim());
-    if (emails.length) {
-      return formatCountWithList("usuário", emails, countValue);
-    }
-    if (countValue !== null) {
-      return formatCount("usuário", countValue);
-    }
-    return formatCount("usuário", rows.length);
-  }
-
-  if (normalized.includes("exercicio")) {
-    if (countValue !== null) {
-      return formatCount("exercício", countValue);
-    }
-    return formatCount("exercício", rows.length);
-  }
-
-  if (normalized.includes("treino") || normalized.includes("workout")) {
-    if (countValue !== null) {
-      return formatCount("treino", countValue);
-    }
-    return formatCount("treino", rows.length);
-  }
-
-  if (!rows.length) {
-    return "Nenhum resultado encontrado.";
-  }
-
-  const details = JSON.stringify(rows);
-  return `Consulta concluída. ${rows.length} registro${
-    rows.length === 1 ? "" : "s"
-  } encontrado${rows.length === 1 ? "" : "s"}. Dados: ${details}`;
+  return JSON.stringify(rows);
 }
 
 function getQuestion(req: express.Request) {
@@ -279,10 +235,8 @@ export function createAskDbRouter() {
       }
 
       const data = await db.query(result.sql);
-      const rows = await ensureUserEmails(question, data.rows);
-      const friendly = buildFriendlyText(question, rows);
 
-      return res.json({ sql: result.sql, data: [friendly], raw: rows });
+      return res.json({ sql: result.sql, data: [data], raw: data.rows });
     } catch (error) {
       console.error(error);
       return res
