@@ -46,6 +46,31 @@ function normalizeQuestion(text: string) {
     .toLowerCase();
 }
 
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+async function resolveUserId(input: string) {
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return { userId: "", usedEmail: false };
+  }
+
+  if (!trimmed.includes("@")) {
+    return { userId: trimmed, usedEmail: false };
+  }
+
+  const result = await db.query(
+    "SELECT id FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1",
+    [trimmed]
+  );
+  const userId = isNonEmptyString(result.rows[0]?.id)
+    ? result.rows[0].id.trim()
+    : "";
+
+  return { userId, usedEmail: true };
+}
+
 function resolveQuestionKey(rawType?: unknown, rawQuestion?: unknown) {
   const type = String(rawType || "").trim().toLowerCase();
   if (type && type in QUESTIONS) {
@@ -140,13 +165,24 @@ export function createWorkoutQuestionRouter() {
     }
 
     const config = QUESTIONS[questionKey];
-    const userId = String(req.body?.userId || req.userId || "").trim();
+    const rawUserId = String(req.body?.userId || req.userId || "").trim();
+    let userId = rawUserId;
 
     console.log("Config question:", config);
     console.log("User ID:", userId);
 
-    if (config.requiresUser && !userId) {
-      return res.status(400).json({ error: "userId e obrigatorio." });
+    if (config.requiresUser) {
+      const resolved = await resolveUserId(rawUserId);
+      userId = resolved.userId;
+      console.log("Resolved User ID:", userId);
+
+      if (!userId) {
+        return res.status(resolved.usedEmail ? 404 : 400).json({
+          error: resolved.usedEmail
+            ? "Usuario nao encontrado para o email informado."
+            : "userId e obrigatorio.",
+        });
+      }
     }
 
     try {
