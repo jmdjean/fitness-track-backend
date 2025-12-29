@@ -34,6 +34,17 @@ function normalizeQuestion(text: string) {
     .toLowerCase();
 }
 
+function getLastNDaysRange(days: number) {
+  const safeDays = Number.isFinite(days) && days > 0 ? Math.floor(days) : 1;
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(start.getDate() - (safeDays - 1));
+  return {
+    startDate: start.toISOString().slice(0, 10),
+    endDate: end.toISOString().slice(0, 10),
+  };
+}
+
 function parseDate(input?: string | null) {
   if (!input) {
     return null;
@@ -68,6 +79,22 @@ function parseDateRange(question: string, body: any) {
       startDate: start.toISOString().slice(0, 10),
       endDate: end.toISOString().slice(0, 10),
     };
+  }
+
+  if (
+    normalized.includes("essa semana") ||
+    normalized.includes("nesta semana") ||
+    normalized.includes("ultima semana")
+  ) {
+    return getLastNDaysRange(7);
+  }
+
+  const lastDaysMatch = normalized.match(/ultimos?\s+(\d+)\s+dias/);
+  if (lastDaysMatch) {
+    const days = Number(lastDaysMatch[1]);
+    if (Number.isFinite(days) && days > 0) {
+      return getLastNDaysRange(days);
+    }
   }
 
   const rangeMatch =
@@ -110,6 +137,54 @@ function parseExerciseFilter(question: string, body: any) {
     .trim();
 
   return raw ? { exerciseId: null, exerciseName: raw } : { exerciseId: null, exerciseName: null };
+}
+
+function parseExerciseForSets(question: string, body: any) {
+  const fromBody = parseExerciseFilter(question, body);
+  if (fromBody.exerciseId || fromBody.exerciseName) {
+    return fromBody;
+  }
+
+  const normalized = normalizeQuestion(question);
+  const match = normalized.match(/series de\s+([a-z0-9\s]+)/);
+  if (!match) {
+    return { exerciseId: null, exerciseName: null };
+  }
+
+  let raw = match[1];
+  raw = raw
+    .replace(/\beu\s+fiz.*$/, "")
+    .replace(/\bnessa\s+semana.*$/, "")
+    .replace(/\bessa\s+semana.*$/, "")
+    .replace(/\bnesta\s+semana.*$/, "")
+    .replace(/\bna\s+semana.*$/, "")
+    .replace(/\bnos?\s+ultimos?\s+\d+\s+dias.*$/, "")
+    .trim();
+
+  return raw ? { exerciseId: null, exerciseName: raw } : { exerciseId: null, exerciseName: null };
+}
+
+type WorkoutDonesQuestionType =
+  | "sets_by_exercise"
+  | "max_weight"
+  | "top_workout_exercises";
+
+function resolveQuestionType(question: string): WorkoutDonesQuestionType | null {
+  const normalized = normalizeQuestion(question);
+
+  if (normalized.includes("quantas series")) {
+    return "sets_by_exercise";
+  }
+
+  if (normalized.includes("carga maxima") || normalized.includes("peso maximo")) {
+    return "max_weight";
+  }
+
+  if (normalized.includes("treino com mais exercicios")) {
+    return "top_workout_exercises";
+  }
+
+  return null;
 }
 
 function formatDoneRows(rows: Array<Record<string, any>>) {
@@ -223,6 +298,110 @@ async function listWorkoutDones(filters: {
   return result.rows;
 }
 
+async function getTotalSetsByExercise(filters: {
+  userId: string;
+  startDate?: string | null;
+  endDate?: string | null;
+  exerciseId?: string | null;
+  exerciseName?: string | null;
+}) {
+  const params: any[] = [filters.userId];
+  let whereClause = "WHERE wd.user_id = $1";
+  let paramIndex = 2;
+
+  if (filters.startDate && filters.endDate) {
+    params.push(filters.startDate, filters.endDate);
+    whereClause += ` AND wd.done_at::date BETWEEN $${paramIndex} AND $${
+      paramIndex + 1
+    }`;
+    paramIndex += 2;
+  }
+
+  if (filters.exerciseId) {
+    params.push(filters.exerciseId);
+    whereClause += ` AND wde.exercise_id = $${paramIndex}`;
+    paramIndex += 1;
+  }
+
+  if (filters.exerciseName) {
+    params.push(`%${filters.exerciseName}%`);
+    whereClause += ` AND e.name ILIKE $${paramIndex}`;
+    paramIndex += 1;
+  }
+
+  const result = await db.query(
+    `SELECT COALESCE(SUM(wde.sets), 0)::int AS total_sets
+     FROM workout_dones wd
+     JOIN workout_done_exercises wde ON wde.workout_done_id = wd.id
+     JOIN exercises e ON e.id = wde.exercise_id
+     ${whereClause}`,
+    params
+  );
+
+  return result.rows[0]?.total_sets ?? 0;
+}
+
+async function getMaxWeight(filters: {
+  userId: string;
+  startDate?: string | null;
+  endDate?: string | null;
+}) {
+  const params: any[] = [filters.userId];
+  let whereClause = "WHERE wd.user_id = $1";
+  let paramIndex = 2;
+
+  if (filters.startDate && filters.endDate) {
+    params.push(filters.startDate, filters.endDate);
+    whereClause += ` AND wd.done_at::date BETWEEN $${paramIndex} AND $${
+      paramIndex + 1
+    }`;
+  }
+
+  const result = await db.query(
+    `SELECT COALESCE(MAX(wde.weight_kg), 0) AS max_weight
+     FROM workout_dones wd
+     JOIN workout_done_exercises wde ON wde.workout_done_id = wd.id
+     ${whereClause}`,
+    params
+  );
+
+  const value = Number(result.rows[0]?.max_weight);
+  return Number.isFinite(value) ? value : 0;
+}
+
+async function getTopWorkoutByExercises(filters: {
+  userId: string;
+  startDate?: string | null;
+  endDate?: string | null;
+}) {
+  const params: any[] = [filters.userId];
+  let whereClause = "WHERE wd.user_id = $1";
+  let paramIndex = 2;
+
+  if (filters.startDate && filters.endDate) {
+    params.push(filters.startDate, filters.endDate);
+    whereClause += ` AND wd.done_at::date BETWEEN $${paramIndex} AND $${
+      paramIndex + 1
+    }`;
+  }
+
+  const result = await db.query(
+    `SELECT w.name,
+            wd.workout_id AS "workoutId",
+            COUNT(wde.id)::int AS exercise_count
+     FROM workout_dones wd
+     JOIN workout_done_exercises wde ON wde.workout_done_id = wd.id
+     JOIN workouts w ON w.id = wd.workout_id
+     ${whereClause}
+     GROUP BY wd.workout_id, w.name
+     ORDER BY exercise_count DESC
+     LIMIT 1`,
+    params
+  );
+
+  return result.rows[0] || null;
+}
+
 export function createWorkoutDonesRouter() {
   const router = express.Router();
 
@@ -242,16 +421,86 @@ export function createWorkoutDonesRouter() {
 
     const question = String(req.body?.question || "").trim();
     if (!question) {
-      return res.status(400).json({ error: "Pergunta é obrigatória" });
+      return res.status(400).json({ error: "Pergunta e obrigatoria" });
     }
 
+    const questionType = resolveQuestionType(question);
     const { startDate, endDate } = parseDateRange(question, req.body);
-    const { exerciseId, exerciseName } = parseExerciseFilter(
-      question,
-      req.body
-    );
 
     try {
+      if (questionType === "sets_by_exercise") {
+        const { exerciseId, exerciseName } = parseExerciseForSets(
+          question,
+          req.body
+        );
+        if (!exerciseId && !exerciseName) {
+          return res.status(400).json({
+            error: "Informe o exercicio (por exemplo: series de supino).",
+          });
+        }
+
+        const totalSets = await getTotalSetsByExercise({
+          userId,
+          startDate,
+          endDate,
+          exerciseId,
+          exerciseName,
+        });
+
+        const exerciseLabel = exerciseName || "exercicio";
+        const text = `Voce fez ${totalSets} serie${
+          totalSets === 1 ? "" : "s"
+        } de ${exerciseLabel} nesse periodo.`;
+
+        return res.json({
+          data: [text],
+          raw: [{ totalSets, exerciseId, exerciseName, startDate, endDate }],
+        });
+      }
+
+      if (questionType === "max_weight") {
+        const maxWeight = await getMaxWeight({ userId, startDate, endDate });
+        const text =
+          maxWeight > 0
+            ? `Sua carga maxima nesse periodo foi ${maxWeight} kg.`
+            : "Nao encontrei cargas registradas nesse periodo.";
+
+        return res.json({
+          data: [text],
+          raw: [{ maxWeight, startDate, endDate }],
+        });
+      }
+
+      if (questionType === "top_workout_exercises") {
+        const topWorkout = await getTopWorkoutByExercises({
+          userId,
+          startDate,
+          endDate,
+        });
+
+        if (!topWorkout) {
+          return res.json({
+            data: ["Nao encontrei treinos nesse periodo."],
+            raw: [],
+          });
+        }
+
+        const workoutName =
+          typeof topWorkout.name === "string" && topWorkout.name.trim()
+            ? topWorkout.name
+            : "Treino";
+        const count = Number(topWorkout.exercise_count) || 0;
+        const text = `O treino com mais exercicios nesse periodo foi ${workoutName} com ${count} exercicio${
+          count === 1 ? "" : "s"
+        }.`;
+
+        return res.json({ data: [text], raw: [topWorkout] });
+      }
+
+      const { exerciseId, exerciseName } = parseExerciseFilter(
+        question,
+        req.body
+      );
       const rows = await listWorkoutDones({
         userId,
         startDate,
