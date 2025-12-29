@@ -1,6 +1,20 @@
 ALTER TABLE IF EXISTS users
   ADD COLUMN IF NOT EXISTS name TEXT;
 
+ALTER TABLE IF EXISTS users
+  ADD COLUMN IF NOT EXISTS sexo TEXT;
+
+ALTER TABLE IF EXISTS users
+  ADD COLUMN IF NOT EXISTS objetivo TEXT;
+
+UPDATE users
+SET sexo = 'Homem'
+WHERE sexo IS NULL;
+
+UPDATE users
+SET objetivo = 'Ganho de massa'
+WHERE objetivo IS NULL;
+
 UPDATE users
 SET name = ''
 WHERE name IS NULL;
@@ -16,5 +30,7 @@ CREATE TABLE IF NOT EXISTS users (
   birthdate DATE NULL,
   weight_kg NUMERIC NULL,
   height_cm NUMERIC NULL,
+  sexo TEXT NULL,
+  objetivo TEXT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );

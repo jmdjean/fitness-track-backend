@@ -1,0 +1,17 @@
+{
+  "name": "mcp-diet",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Internal MCP service to generate diet plans",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "engines": {
+    "node": "20.19.0"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "openai": "^6.15.0"
+  }
+}
