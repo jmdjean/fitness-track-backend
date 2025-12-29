@@ -199,7 +199,44 @@ function formatCountWithList(
 }
 
 function buildFriendlyText(question: string, rows: Array<Record<string, any>>) {
-  return JSON.stringify(rows);
+  if (!rows.length) {
+    return "Nao encontrei resultados para sua pergunta.";
+  }
+
+  const normalized = normalizeQuestion(question);
+  const first = rows[0] || {};
+  const rawCount = first.count;
+  const count = Number.isFinite(Number(rawCount)) ? Number(rawCount) : null;
+
+  if (count !== null) {
+    const label = normalized.includes("treino")
+      ? "treino"
+      : normalized.includes("exercicio")
+      ? "exercicio"
+      : normalized.includes("usuario")
+      ? "usuario"
+      : "registro";
+    const plural = count === 1 ? label : `${label}s`;
+    return `Encontrei ${count} ${plural} para sua pergunta.`;
+  }
+
+  const names = rows
+    .map((row) => (typeof row.name === "string" ? row.name.trim() : ""))
+    .filter((name) => name.length > 0);
+
+  if (names.length) {
+    const label = normalized.includes("treino")
+      ? "treinos"
+      : normalized.includes("exercicio")
+      ? "exercicios"
+      : normalized.includes("usuario")
+      ? "usuarios"
+      : "itens";
+    const list = names.map((name, index) => `${index + 1}. ${name}`).join(" ");
+    return `Encontrei ${names.length} ${label}: ${list}.`;
+  }
+
+  return `Resultado da consulta: ${JSON.stringify(rows)}`;
 }
 
 function getQuestion(req: express.Request) {
@@ -266,8 +303,9 @@ export function createAskDbRouter() {
       }
 
       const data = await db.query(result.sql);
+      const friendlyText = buildFriendlyText(question, data.rows);
 
-      return res.json({ sql: result.sql, data: [data], raw: data.rows });
+      return res.json({ sql: result.sql, data: [friendlyText], raw: data.rows });
     } catch (error) {
       console.error(error);
       return res
