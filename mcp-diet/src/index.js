@@ -12,16 +12,17 @@ function buildPrompt(payload) {
   const workouts = payload.workouts || {};
 
   return [
-    "Generate a JSON diet plan only.",
-    "Return ONLY valid JSON, no markdown.",
-    "Use 7 days with meals.",
-    "Use simple foods and quantities.",
+    "Gere um plano alimentar em JSON apenas.",
+    "Retorne SOMENTE JSON válido, sem markdown.",
+    "Use 7 dias com refeições.",
+    "Use alimentos simples e quantidades claras.",
+    "Escreva o conteúdo em português com acentuação correta.",
     "",
-    `User: ${JSON.stringify(user)}`,
-    `Stats: ${JSON.stringify(stats)}`,
-    `RecentWorkouts: ${JSON.stringify(workouts.recent || [])}`,
+    `Usuário: ${JSON.stringify(user)}`,
+    `Estatísticas: ${JSON.stringify(stats)}`,
+    `Treinos recentes: ${JSON.stringify(workouts.recent || [])}`,
     "",
-    "Required JSON shape:",
+    "Formato JSON obrigatório:",
     "{",
     '  "goal": string,',
     '  "profile": { "age": number, "sex": string, "weightKg": number, "heightCm": number },',
@@ -47,12 +48,12 @@ function buildPrompt(payload) {
 app.post("/generate", async (req, res) => {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: "OPENAI_API_KEY not configured." });
+    return res.status(500).json({ error: "OPENAI_API_KEY não configurada." });
   }
 
   const payload = req.body || {};
   if (!payload.user || !payload.user.birthdate) {
-    return res.status(400).json({ error: "birthdate is required." });
+    return res.status(400).json({ error: "Data de nascimento é obrigatório." });
   }
 
   try {
@@ -64,7 +65,8 @@ app.post("/generate", async (req, res) => {
       messages: [
         {
           role: "system",
-          content: "You are a nutrition assistant that outputs JSON only.",
+          content:
+            "Você é um assistente de nutrição que retorna apenas JSON em português.",
         },
         { role: "user", content: buildPrompt(payload) },
       ],
@@ -76,7 +78,7 @@ app.post("/generate", async (req, res) => {
       plan = JSON.parse(content);
     } catch (error) {
       return res.status(500).json({
-        error: "Failed to parse model response as JSON.",
+        error: "Falha ao interpretar a resposta do modelo como JSON.",
         raw: content,
       });
     }
@@ -84,10 +86,10 @@ app.post("/generate", async (req, res) => {
     return res.json({ plan });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: "Failed to generate diet." });
+    return res.status(500).json({ error: "Falha ao gerar a dieta." });
   }
 });
 
 app.listen(port, () => {
-  console.log(`mcp-diet running on http://localhost:${port}`);
+  console.log(`mcp-diet rodando em http://localhost:${port}`);
 });

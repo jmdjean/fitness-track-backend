@@ -133,29 +133,29 @@ function createDietRoutes() {
       if (!headerUserId) {
         return res
           .status(400)
-          .json({ error: "userId e obrigatorio no header." });
+          .json({ error: "userId é obrigatório no header." });
       }
 
       const userId = await resolveUserId(headerUserId);
       if (!userId) {
-        return res.status(400).json({ error: "ID do usuario nao encontrado" });
+        return res.status(400).json({ error: "ID do usuário não encontrado" });
       }
 
       const user = await getUserById(userId);
       if (!user) {
-        return res.status(404).json({ error: "Usuario nao encontrado" });
+        return res.status(404).json({ error: "Usuário não encontrado" });
       }
 
       if (!user.birthdate) {
         return res.status(400).json({
-          error: "Data de nascimento obrigatoria para gerar a dieta.",
+          error: "Data de nascimento obrigatória para gerar a dieta.",
         });
       }
 
       const age = getAge(user.birthdate);
       if (!age) {
         return res.status(400).json({
-          error: "Data de nascimento invalida para gerar a dieta.",
+          error: "Data de nascimento inválida para gerar a dieta.",
         });
       }
 
@@ -193,7 +193,7 @@ function createDietRoutes() {
       if (!payload || !payload.plan) {
         return res
           .status(502)
-          .json({ error: "Resposta invalida do MCP." });
+          .json({ error: "Resposta inválida do MCP." });
       }
 
       const result = await db.query(
@@ -221,7 +221,7 @@ function createDietRoutes() {
 
       const userId = await resolveUserId(headerUserId);
       if (!userId) {
-        return res.status(400).json({ error: "ID do usuario nao encontrado" });
+        return res.status(400).json({ error: "ID do usuário não encontrado" });
       }
 
       const result = await db.query(
@@ -233,7 +233,7 @@ function createDietRoutes() {
 
       const row = result.rows[0];
       if (!row) {
-        return res.status(404).json({ error: "Dieta nao encontrada." });
+        return res.status(404).json({ error: "Dieta não encontrada." });
       }
 
       return res.json(row);
