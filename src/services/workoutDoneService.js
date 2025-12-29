@@ -11,6 +11,10 @@ function resolveExerciseId(item) {
     return item.id;
   }
 
+  if (isNonEmptyString(item.exerciseId)) {
+    return item.exerciseId;
+  }
+
   if (isNonEmptyString(item.exercise)) {
     return item.exercise;
   }
