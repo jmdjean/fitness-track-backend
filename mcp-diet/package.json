@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "description": "Internal MCP service to generate diet plans",
-  "main": "src/index.js",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/server.js"
   },
   "engines": {
     "node": "20.19.0"
